@@ -4,23 +4,31 @@ Photobook 2025 is a lightweight Firebase-backed gallery that lets people upload 
 
 ## Project structure
 
-- `public/` – Static assets served by Firebase Hosting
-  - `index.html` – Upload form + 12-month gallery
-  - `styles.css` – Minimal, responsive styling
-  - `app.js` – Firebase initialization, upload handling, and gallery rendering
-- `firebase.json` – Hosting configuration and rule references
+- `index.html` – Upload form + 12-month gallery
+- `styles.css` – Minimal, responsive styling
+- `app.js` – Firebase initialization, upload handling, and gallery rendering
+- `firebase-config.example.js` – Copy to `firebase-config.js` with your Firebase project keys for local dev or GitHub Pages
+- `firebase.json` – Hosting configuration and rule references (if you also deploy to Firebase Hosting)
 - `firestore.rules` – Basic Firestore read/write rules for the `photos` collection
 - `storage.rules` – Storage rules for the `photos/{month}/{filename}` bucket
 
 ## Firebase setup
 
 1. Create a Firebase project and enable Firestore and Storage.
-2. Update `public/app.js` with your Firebase config values (or provide them via Vite-style `import.meta.env` variables at build time).
-3. Deploy hosting and rules:
+2. Copy `firebase-config.example.js` to `firebase-config.js` and fill in your Firebase config values. These keys are safe to publish in client-only apps.
+3. For Firebase Hosting deployments, run:
 
 ```bash
 firebase deploy --only hosting,firestore,storage
 ```
+
+## GitHub Pages
+
+Photobook 2025 is now structured to run directly from the repository root (or a `/docs` folder, if you prefer). To deploy on GitHub Pages:
+
+1. Ensure `firebase-config.js` contains your Firebase settings (or add a different config file via another `<script>` tag before `app.js`).
+2. Push to your default branch and enable GitHub Pages from that branch and folder (root or `docs`).
+3. All asset paths are relative, so the site works whether it is served from `https://<user>.github.io/<repo>/` or a custom domain.
 
 ## How it works
 
