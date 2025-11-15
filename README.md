@@ -26,9 +26,10 @@ firebase deploy --only hosting,firestore,storage
 
 Photobook 2025 is now structured to run directly from the repository root (or a `/docs` folder, if you prefer). To deploy on GitHub Pages:
 
-1. Ensure `firebase-config.js` contains your Firebase settings (or add a different config file via another `<script>` tag before `app.js`).
-2. Push to your default branch and enable GitHub Pages from that branch and folder (root or `docs`).
-3. All asset paths are relative, so the site works whether it is served from `https://<user>.github.io/<repo>/` or a custom domain.
+1. Ensure `firebase-config.js` contains your Firebase settings (or add a different config file via another `<script>` tag before `app.js`). The repository copy includes your provided project values—just replace `YOUR_API_KEY` with the real key from the Firebase console.
+2. Leave the `.nojekyll` file in place so GitHub Pages serves `index.html` instead of rendering the README.
+3. Push to your default branch and enable GitHub Pages from that branch and folder (root or `docs`).
+4. All asset paths are relative, so the site works whether it is served from `https://<user>.github.io/<repo>/` or a custom domain.
 
 ## How it works
 
