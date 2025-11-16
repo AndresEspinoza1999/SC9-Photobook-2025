@@ -69,6 +69,11 @@ main {
   transition: background 150ms ease, color 150ms ease;
 }
 
+.topbar__link--active {
+  background: rgba(124, 58, 237, 0.18);
+  color: #fff;
+}
+
 .topbar__link:hover,
 .topbar__link:focus-visible {
   background: rgba(124, 58, 237, 0.16);
