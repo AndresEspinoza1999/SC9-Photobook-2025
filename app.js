@@ -30,6 +30,7 @@ const firebaseConfig =
 let app;
 let db;
 let storage;
+let isUploading = false;
 
 const months = [
   'January',
@@ -86,6 +87,13 @@ function setLoading(isLoading, message = '') {
     spinner.parentElement.classList.remove('loading');
     statusEl.textContent = message;
   }
+}
+
+function setUploadControlsDisabled(isDisabled) {
+  uploadForm.querySelectorAll('input, select, textarea, button').forEach((el) => {
+    el.disabled = isDisabled;
+    el.setAttribute('aria-disabled', isDisabled ? 'true' : 'false');
+  });
 }
 
 function formatDate(timestamp) {
@@ -180,6 +188,11 @@ function hydrateExisting() {
 async function handleUpload(event) {
   event.preventDefault();
 
+  if (isUploading) {
+    statusEl.textContent = 'Upload already in progress. Please wait.';
+    return;
+  }
+
   const month = monthSelect.value;
   const photographer = document.getElementById('photographer').value.trim();
   const notes = document.getElementById('notes').value.trim();
@@ -234,6 +247,8 @@ async function handleUpload(event) {
   };
 
   try {
+    isUploading = true;
+    setUploadControlsDisabled(true);
     setLoading(true, `Uploading ${files.length} photo${files.length > 1 ? 's' : ''}...`);
     const results = await Promise.allSettled(files.map((file, index) => uploadSinglePhoto(file, index)));
 
@@ -257,6 +272,9 @@ async function handleUpload(event) {
   } catch (error) {
     console.error(error);
     setLoading(false, 'Upload failed. Please try again.');
+  } finally {
+    isUploading = false;
+    setUploadControlsDisabled(false);
   }
 }
 
