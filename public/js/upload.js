@@ -30,6 +30,8 @@ const months = [
 const monthSelect = document.getElementById('month');
 const uploadForm = document.getElementById('upload-form');
 const statusEl = document.getElementById('status');
+const uploadButton = uploadForm.querySelector('button[type="submit"]');
+const fileInput = document.getElementById('photo');
 let app;
 let db;
 let storage;
@@ -60,18 +62,12 @@ function populateMonths() {
 
 function setLoading(isLoading, message = '') {
   statusEl.textContent = message;
-  if (isLoading) {
-    uploadForm.classList.add('loading');
-  } else {
-    uploadForm.classList.remove('loading');
-  }
-}
-
-function setControlsDisabled(disabled) {
-  uploadForm.querySelectorAll('input, select, textarea, button').forEach((el) => {
-    el.disabled = disabled;
-    el.setAttribute('aria-disabled', disabled ? 'true' : 'false');
-  });
+  uploadForm.classList.toggle('loading', isLoading);
+  uploadForm.setAttribute('aria-busy', isLoading ? 'true' : 'false');
+  uploadButton.disabled = isLoading;
+  uploadButton.setAttribute('aria-disabled', isLoading ? 'true' : 'false');
+  fileInput.disabled = isLoading;
+  fileInput.setAttribute('aria-disabled', isLoading ? 'true' : 'false');
 }
 
 async function handleUpload(event) {
@@ -99,7 +95,7 @@ async function handleUpload(event) {
 
   const monthIndex = parseInt(month, 10);
 
-  const uploadSinglePhoto = async (file, index) => {
+  const uploadSinglePhoto = async (file, index, total) => {
     const safeName = `${Date.now()}-${index}-${file.name.replace(/\s+/g, '-')}`;
     const storageRef = ref(storage, `photos/${monthIndex}/${safeName}`);
 
@@ -110,7 +106,10 @@ async function handleUpload(event) {
     await new Promise((resolve, reject) => {
       uploadTask.on(
         'state_changed',
-        () => {},
+        (snapshot) => {
+          const percent = Math.round((snapshot.bytesTransferred / snapshot.totalBytes) * 100);
+          setLoading(true, `Uploading ${index + 1}/${total}... ${percent}%`);
+        },
         (error) => reject(error),
         () => resolve()
       );
@@ -130,9 +129,11 @@ async function handleUpload(event) {
 
   try {
     isUploading = true;
-    setControlsDisabled(true);
-    setLoading(true, `Uploading ${files.length} photo${files.length > 1 ? 's' : ''}...`);
-    const results = await Promise.allSettled(files.map((file, index) => uploadSinglePhoto(file, index)));
+    setLoading(true, `Preparing to upload ${files.length} photo${files.length > 1 ? 's' : ''}...`);
+
+    const results = await Promise.allSettled(
+      files.map((file, index) => uploadSinglePhoto(file, index, files.length))
+    );
 
     const failed = results
       .map((result, idx) => (result.status === 'rejected' ? files[idx].name : null))
@@ -142,7 +143,6 @@ async function handleUpload(event) {
       uploadForm.reset();
       monthSelect.value = month;
       setLoading(false, 'Upload complete! Your photos will appear in the book shortly.');
-      setTimeout(() => setLoading(false, ''), 2000);
     } else {
       const successCount = files.length - failed.length;
       setLoading(
@@ -156,7 +156,7 @@ async function handleUpload(event) {
     setLoading(false, 'Upload failed. Please try again.');
   } finally {
     isUploading = false;
-    setControlsDisabled(false);
+    setLoading(false, statusEl.textContent);
   }
 }
 
@@ -166,7 +166,10 @@ function init() {
 
   if (!isConfigReady(window.firebaseConfig)) {
     setLoading(false, 'Add your Firebase config in firebase-config.js to enable uploads.');
-    setControlsDisabled(true);
+    uploadButton.disabled = true;
+    uploadButton.setAttribute('aria-disabled', 'true');
+    fileInput.disabled = true;
+    fileInput.setAttribute('aria-disabled', 'true');
     return;
   }
 
@@ -174,6 +177,7 @@ function init() {
   db = getFirestore(app);
   storage = getStorage(app);
 
+  setLoading(false, 'Ready to upload.');
   uploadForm.addEventListener('submit', handleUpload);
 }
 
