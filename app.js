@@ -107,6 +107,14 @@ function renderMonthContainers() {
   });
 }
 
+function reportMissingConfigScript() {
+  if (window.firebaseConfig) return;
+
+  console.error(
+    'firebase-config.js was not loaded. Check that the script path is correct (e.g. /SC9-Photobook-2025/firebase-config.js on GitHub Pages).'
+  );
+}
+
 function findMonthGrid(monthIndex) {
   const monthSection = gallery.children[monthIndex];
   if (!monthSection) return null;
@@ -263,6 +271,8 @@ function init() {
   populateMonths();
   renderMonthContainers();
   hydrateExisting();
+
+  reportMissingConfigScript();
 
   if (!isConfigReady(firebaseConfig)) {
     disableForm('Add your Firebase config in firebase-config.js to enable uploads and the live gallery.');
