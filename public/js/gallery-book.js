@@ -3,7 +3,6 @@ import {
   getFirestore,
   collection,
   query,
-  where,
   orderBy,
   onSnapshot
 } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
@@ -47,10 +46,11 @@ const lightboxClose = document.getElementById('lightbox-close');
 let app;
 let db;
 
-const monthState = months.map(() => ({ photos: [], loaded: false, unsubscribe: null }));
+const monthState = months.map(() => ({ photos: [], loaded: false }));
 let pages = [];
 let currentPageIndex = 0;
 let activeLightbox = null;
+let unsubscribeAll = null;
 
 function isConfigReady(config) {
   if (!config) return false;
@@ -75,18 +75,65 @@ function formatDate(timestamp) {
   }).format(timestamp.toDate ? timestamp.toDate() : timestamp);
 }
 
-function ensureMonthSubscription(monthIndex) {
-  const state = monthState[monthIndex];
-  if (!state || state.loaded) return;
+function deriveMonthIndex(photo) {
+  const monthValue = photo.month;
 
-  state.loaded = true;
+  if (typeof monthValue === 'number') {
+    if (monthValue >= 0 && monthValue <= 11) return monthValue;
+    if (monthValue >= 1 && monthValue <= 12) return monthValue - 1;
+  }
+
+  if (typeof monthValue === 'string') {
+    const trimmed = monthValue.trim();
+    const parsed = parseInt(trimmed, 10);
+
+    if (!Number.isNaN(parsed)) {
+      if (parsed >= 0 && parsed <= 11) return parsed;
+      if (parsed >= 1 && parsed <= 12) return parsed - 1;
+    }
+
+    const byName = months.findIndex((name) => name.toLowerCase() === trimmed.toLowerCase());
+    if (byName >= 0) return byName;
+  }
+
+  if (photo.createdAt?.toDate || photo.createdAt instanceof Date) {
+    const date = photo.createdAt.toDate ? photo.createdAt.toDate() : photo.createdAt;
+    if (date instanceof Date && !Number.isNaN(date.getMonth())) return date.getMonth();
+  }
+
+  return null;
+}
+
+function subscribeToPhotos() {
+  if (unsubscribeAll) return;
+
   const photosRef = collection(db, 'photos');
-  const q = query(photosRef, where('month', '==', monthIndex), orderBy('createdAt', 'desc'));
+  const q = query(photosRef, orderBy('createdAt', 'desc'));
 
-  state.unsubscribe = onSnapshot(q, (snapshot) => {
-    state.photos = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
-    rebuildPages();
-  });
+  unsubscribeAll = onSnapshot(
+    q,
+    (snapshot) => {
+      monthState.forEach((state) => {
+        state.photos = [];
+        state.loaded = true;
+      });
+
+      snapshot.docs.forEach((doc) => {
+        const data = { id: doc.id, ...doc.data() };
+        const monthIndex = deriveMonthIndex(data);
+        if (monthIndex === null) return;
+        monthState[monthIndex].photos.push(data);
+      });
+
+      rebuildPages();
+    },
+    (error) => {
+      console.error('Failed to load photos', error);
+      monthLabel.textContent = 'Unable to load photos';
+      pageLabel.textContent = '';
+      pageGrid.innerHTML = '<p class="placeholder">Could not load photos. Please try again later.</p>';
+    }
+  );
 }
 
 function rebuildPages() {
@@ -210,7 +257,6 @@ function syncNavButtons() {
 
 function navigateToPage(targetIndex, direction) {
   currentPageIndex = Math.max(0, Math.min(targetIndex, pages.length - 1));
-  ensureMonthSubscription(pages[currentPageIndex].monthIndex);
   renderPage(direction);
 }
 
@@ -345,8 +391,7 @@ function init() {
 
   bindEvents();
   initPages();
-  ensureMonthSubscription(0);
-  ensureMonthSubscription(1); // prefetch the next month for smoother flips
+  subscribeToPhotos();
 }
 
 init();
