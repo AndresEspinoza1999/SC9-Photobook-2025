@@ -4,95 +4,111 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Photobook 2025</title>
-    <link rel="stylesheet" href="styles.css" />
+    <link rel="stylesheet" href="css/book.css" />
   </head>
   <body>
-    <header class="hero">
-      <div class="hero__content">
-        <p class="eyebrow">Capture the year</p>
-        <h1>Photobook 2025</h1>
-        <p class="lede">
-          Upload your favorite shots from each month and watch the year unfold
-          in a clean, minimal gallery.
-        </p>
-        <a class="button" href="#upload">Upload a photo</a>
-      </div>
+    <header class="topbar">
+      <div class="topbar__brand">Photobook 2025</div>
+      <nav class="topbar__nav">
+        <a href="upload.html" class="topbar__link">Upload photos</a>
+        <a href="#book" class="topbar__link">Open book</a>
+      </nav>
     </header>
 
     <main>
-      <section id="upload" class="card">
-        <div class="card__header">
-          <h2>Upload a memory</h2>
-          <p>Photos appear instantly in the month you pick.</p>
+      <section class="hero">
+        <div class="hero__content">
+          <p class="eyebrow">A year in pages</p>
+          <h1>Flip through 2025 like a real photo book</h1>
+          <p class="lede">
+            Browse each month, four photos at a time. Turn the pages, open a lightbox for details, and relive the year with a tactile 3D flip.
+          </p>
+          <div class="hero__actions">
+            <a class="button button--primary" href="#book">Start flipping</a>
+            <a class="button" href="upload.html">Upload a memory</a>
+          </div>
         </div>
-
-        <form id="upload-form" class="form" novalidate>
-          <div class="form__grid">
-            <label class="form__control">
-              <span>Month</span>
-              <select id="month" name="month" required>
-                <option value="">Select a month</option>
-              </select>
-            </label>
-
-            <label class="form__control">
-              <span>Photographer (optional)</span>
-              <input type="text" id="photographer" name="photographer" maxlength="80" placeholder="Your name" />
-            </label>
-          </div>
-
-          <label class="form__control">
-            <span>Notes (optional, 500 chars)</span>
-            <textarea id="notes" name="notes" maxlength="500" placeholder="Where were you? What made it special?"></textarea>
-          </label>
-
-          <label class="form__control form__control--file">
-            <span>Photo</span>
-            <input type="file" id="photo" name="photo" accept="image/*" required />
-          </label>
-
-          <div class="form__footer">
-            <div class="status" id="status" aria-live="polite"></div>
-            <button type="submit" class="button button--primary">
-              <span class="button__spinner" id="upload-spinner" aria-hidden="true"></span>
-              <span>Upload</span>
-            </button>
-          </div>
-        </form>
       </section>
 
-      <section class="card">
-        <div class="card__header">
-          <h2>Gallery</h2>
-          <p>New uploads appear at the top of each month.</p>
+      <section class="card" aria-label="Photobook viewer">
+        <header class="card__header">
+          <div>
+            <p class="eyebrow">Monthly spreads</p>
+            <h2>Turn the pages</h2>
+            <p class="lede">Four photos per page, grouped by month and streamed from Firebase.</p>
+          </div>
+          <div class="pager" aria-live="polite">
+            <button id="prev-page" class="pager__button" type="button" aria-label="Previous page">
+              &#10094; Previous
+            </button>
+            <div class="pager__status">
+              <span id="month-label">Loading…</span>
+              <span id="page-label"></span>
+            </div>
+            <button id="next-page" class="pager__button" type="button" aria-label="Next page">
+              Next &#10095;
+            </button>
+          </div>
+        </header>
+
+        <div id="book" class="book" aria-live="polite">
+          <div id="page" class="page" aria-label="Photo page">
+            <div class="page__inner">
+              <div id="page-grid" class="page__grid" role="list"></div>
+            </div>
+          </div>
+          <div id="page-shadow" class="page__shadow" aria-hidden="true"></div>
         </div>
-        <div id="gallery" class="gallery"></div>
+        <div id="page-indicators" class="page__indicators" aria-live="polite"></div>
       </section>
     </main>
 
-    <template id="month-template">
-      <div class="month">
-        <div class="month__header">
-          <h3 class="month__title"></h3>
-          <span class="badge month__count">0</span>
+    <div id="lightbox-backdrop" class="lightbox__backdrop" aria-hidden="true"></div>
+    <section
+      id="lightbox"
+      class="lightbox"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="lightbox-caption"
+      aria-hidden="true"
+    >
+      <button id="lightbox-close" class="lightbox__close" type="button" aria-label="Close (Esc)">
+        &times;
+      </button>
+      <button id="lightbox-prev" class="lightbox__nav lightbox__nav--prev" type="button" aria-label="Previous photo">
+        &#10094;
+      </button>
+      <div class="lightbox__content">
+        <img id="lightbox-image" alt="" />
+        <div class="lightbox__meta">
+          <p id="lightbox-caption"></p>
+          <p id="lightbox-notes"></p>
         </div>
-        <div class="month__grid"></div>
       </div>
-    </template>
+      <button id="lightbox-next" class="lightbox__nav lightbox__nav--next" type="button" aria-label="Next photo">
+        &#10095;
+      </button>
+    </section>
 
     <template id="photo-template">
-      <article class="photo">
-        <div class="photo__frame">
+      <article class="photo" role="listitem">
+        <div class="photo__frame" tabindex="0">
           <img loading="lazy" alt="" />
         </div>
         <div class="photo__meta">
-          <p class="photo__timestamp"></p>
-          <p class="photo__info"></p>
+          <p class="photo__caption"></p>
           <p class="photo__notes"></p>
         </div>
       </article>
     </template>
 
-    <script type="module" src="app.js"></script>
+    <template id="placeholder-template">
+      <div class="placeholder">
+        <p>No photos yet for this page.</p>
+      </div>
+    </template>
+
+    <script src="firebase-config.js"></script>
+    <script type="module" src="js/gallery-book.js"></script>
   </body>
 </html>
