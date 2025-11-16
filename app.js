@@ -466,6 +466,8 @@ function init() {
 
   reportMissingConfigScript();
 
+  reportMissingConfigScript();
+
   if (!isConfigReady(firebaseConfig)) {
     disableForm('Add your Firebase config in firebase-config.js to enable uploads and the live gallery.');
     return;
