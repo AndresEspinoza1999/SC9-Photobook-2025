@@ -6,8 +6,8 @@ window.firebaseConfig = {
   authDomain: 'photobook2025-e537c.firebaseapp.com',
   databaseURL: 'https://photobook2025-e537c.firebaseio.com',
   projectId: 'photobook2025-e537c',
-  storageBucket: 'photobook2025-e537c.appspot.com',
+  storageBucket: 'photobook2025-e537c.firebasestorage.app',
   messagingSenderId: '405902241666',
   appId: '1:405902241666:web:f5d105003069b44823a99b',
-  measurementId: 'G-513375192'
+  measurementId: 'G-FCX1B2GDPY'
 };
