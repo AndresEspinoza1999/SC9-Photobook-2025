@@ -30,6 +30,7 @@ const firebaseConfig =
 let app;
 let db;
 let storage;
+let isUploading = false;
 
 const months = [
   'January',
@@ -88,6 +89,13 @@ function setLoading(isLoading, message = '') {
   }
 }
 
+function setUploadControlsDisabled(isDisabled) {
+  uploadForm.querySelectorAll('input, select, textarea, button').forEach((el) => {
+    el.disabled = isDisabled;
+    el.setAttribute('aria-disabled', isDisabled ? 'true' : 'false');
+  });
+}
+
 function formatDate(timestamp) {
   if (!timestamp) return '';
   return new Intl.DateTimeFormat('en', {
@@ -105,6 +113,14 @@ function renderMonthContainers() {
     monthNode.querySelector('.month__title').textContent = monthName;
     gallery.appendChild(monthNode);
   });
+}
+
+function reportMissingConfigScript() {
+  if (window.firebaseConfig) return;
+
+  console.error(
+    'firebase-config.js was not loaded. Check that the script path is correct (e.g. /SC9-Photobook-2025/firebase-config.js on GitHub Pages).'
+  );
 }
 
 function findMonthGrid(monthIndex) {
@@ -172,18 +188,23 @@ function hydrateExisting() {
 async function handleUpload(event) {
   event.preventDefault();
 
+  if (isUploading) {
+    statusEl.textContent = 'Upload already in progress. Please wait.';
+    return;
+  }
+
   const month = monthSelect.value;
   const photographer = document.getElementById('photographer').value.trim();
   const notes = document.getElementById('notes').value.trim();
-  const file = document.getElementById('photo').files[0];
+  const files = Array.from(document.getElementById('photo').files || []);
 
   if (!month) {
     setLoading(false, 'Pick a month.');
     return;
   }
 
-  if (!file) {
-    setLoading(false, 'Please choose a photo.');
+  if (!files.length) {
+    setLoading(false, 'Please choose at least one photo.');
     return;
   }
 
@@ -193,11 +214,11 @@ async function handleUpload(event) {
   }
 
   const monthIndex = parseInt(month, 10);
-  const safeName = `${Date.now()}-${file.name.replace(/\s+/g, '-')}`;
-  const storageRef = ref(storage, `photos/${monthIndex}/${safeName}`);
 
-  try {
-    setLoading(true, 'Uploading photo...');
+  const uploadSinglePhoto = async (file, index) => {
+    const safeName = `${Date.now()}-${index}-${file.name.replace(/\s+/g, '-')}`;
+    const storageRef = ref(storage, `photos/${monthIndex}/${safeName}`);
+
     const uploadTask = uploadBytesResumable(storageRef, file, {
       contentType: file.type
     });
@@ -222,13 +243,38 @@ async function handleUpload(event) {
       createdAt: serverTimestamp()
     });
 
-    uploadForm.reset();
-    monthSelect.value = month;
-    setLoading(false, 'Upload complete!');
-    setTimeout(() => setLoading(false, ''), 1800);
+    return { originalName: file.name, storedName: safeName };
+  };
+
+  try {
+    isUploading = true;
+    setUploadControlsDisabled(true);
+    setLoading(true, `Uploading ${files.length} photo${files.length > 1 ? 's' : ''}...`);
+    const results = await Promise.allSettled(files.map((file, index) => uploadSinglePhoto(file, index)));
+
+    const failedFiles = results
+      .map((result, idx) => (result.status === 'rejected' ? files[idx].name : null))
+      .filter(Boolean);
+
+    if (failedFiles.length === 0) {
+      uploadForm.reset();
+      monthSelect.value = month;
+      setLoading(false, 'Upload complete!');
+      setTimeout(() => setLoading(false, ''), 1800);
+    } else {
+      const successCount = files.length - failedFiles.length;
+      setLoading(
+        false,
+        `Uploaded ${successCount} of ${files.length} photos. Retry failed files: ${failedFiles.join(', ')}`
+      );
+      console.error('Some uploads failed', { failedFiles, results });
+    }
   } catch (error) {
     console.error(error);
     setLoading(false, 'Upload failed. Please try again.');
+  } finally {
+    isUploading = false;
+    setUploadControlsDisabled(false);
   }
 }
 
@@ -263,6 +309,8 @@ function init() {
   populateMonths();
   renderMonthContainers();
   hydrateExisting();
+
+  reportMissingConfigScript();
 
   if (!isConfigReady(firebaseConfig)) {
     disableForm('Add your Firebase config in firebase-config.js to enable uploads and the live gallery.');
