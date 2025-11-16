@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Upload | Photobook 2025</title>
+    <link rel="stylesheet" href="css/book.css" />
+  </head>
+  <body>
+    <header class="topbar">
+      <div class="topbar__brand">Photobook 2025</div>
+      <nav class="topbar__nav">
+        <a href="index.html" class="topbar__link">Back to book</a>
+      </nav>
+    </header>
+
+    <main>
+      <section class="hero hero--subpage">
+        <div class="hero__content">
+          <p class="eyebrow">Upload</p>
+          <h1>Add your photos</h1>
+          <p class="lede">Store shots in Firebase Storage and metadata in Firestore so they appear in the monthly book.</p>
+        </div>
+      </section>
+
+      <section class="card" aria-label="Upload photos">
+        <header class="card__header">
+          <div>
+            <h2>Upload a memory</h2>
+            <p class="lede">Photos appear instantly in the month you choose.</p>
+          </div>
+          <div id="status" class="status" aria-live="polite"></div>
+        </header>
+
+        <form id="upload-form" class="form" novalidate>
+          <div class="form__grid">
+            <label class="form__control">
+              <span>Month</span>
+              <select id="month" name="month" required>
+                <option value="">Select a month</option>
+              </select>
+            </label>
+
+            <label class="form__control">
+              <span>Photographer (optional)</span>
+              <input type="text" id="photographer" name="photographer" maxlength="80" placeholder="Your name" />
+            </label>
+          </div>
+
+          <label class="form__control">
+            <span>Notes (optional, 500 chars)</span>
+            <textarea
+              id="notes"
+              name="notes"
+              maxlength="500"
+              placeholder="Where were you? What made it special?"
+            ></textarea>
+          </label>
+
+          <label class="form__control form__control--file">
+            <span>Photo(s)</span>
+            <input type="file" id="photo" name="photo" accept="image/*" multiple required />
+          </label>
+
+          <div class="form__footer">
+            <button type="submit" class="button button--primary">
+              <span class="button__spinner" id="upload-spinner" aria-hidden="true"></span>
+              <span>Upload</span>
+            </button>
+          </div>
+        </form>
+      </section>
+    </main>
+
+    <script src="firebase-config.js"></script>
+    <script type="module" src="js/upload.js"></script>
+  </body>
+</html>
