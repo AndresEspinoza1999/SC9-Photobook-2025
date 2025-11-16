@@ -183,15 +183,15 @@ async function handleUpload(event) {
   const month = monthSelect.value;
   const photographer = document.getElementById('photographer').value.trim();
   const notes = document.getElementById('notes').value.trim();
-  const file = document.getElementById('photo').files[0];
+  const files = Array.from(document.getElementById('photo').files || []);
 
   if (!month) {
     setLoading(false, 'Pick a month.');
     return;
   }
 
-  if (!file) {
-    setLoading(false, 'Please choose a photo.');
+  if (!files.length) {
+    setLoading(false, 'Please choose at least one photo.');
     return;
   }
 
@@ -201,11 +201,11 @@ async function handleUpload(event) {
   }
 
   const monthIndex = parseInt(month, 10);
-  const safeName = `${Date.now()}-${file.name.replace(/\s+/g, '-')}`;
-  const storageRef = ref(storage, `photos/${monthIndex}/${safeName}`);
 
-  try {
-    setLoading(true, 'Uploading photo...');
+  const uploadSinglePhoto = async (file, index) => {
+    const safeName = `${Date.now()}-${index}-${file.name.replace(/\s+/g, '-')}`;
+    const storageRef = ref(storage, `photos/${monthIndex}/${safeName}`);
+
     const uploadTask = uploadBytesResumable(storageRef, file, {
       contentType: file.type
     });
@@ -230,10 +230,30 @@ async function handleUpload(event) {
       createdAt: serverTimestamp()
     });
 
-    uploadForm.reset();
-    monthSelect.value = month;
-    setLoading(false, 'Upload complete!');
-    setTimeout(() => setLoading(false, ''), 1800);
+    return { originalName: file.name, storedName: safeName };
+  };
+
+  try {
+    setLoading(true, `Uploading ${files.length} photo${files.length > 1 ? 's' : ''}...`);
+    const results = await Promise.allSettled(files.map((file, index) => uploadSinglePhoto(file, index)));
+
+    const failedFiles = results
+      .map((result, idx) => (result.status === 'rejected' ? files[idx].name : null))
+      .filter(Boolean);
+
+    if (failedFiles.length === 0) {
+      uploadForm.reset();
+      monthSelect.value = month;
+      setLoading(false, 'Upload complete!');
+      setTimeout(() => setLoading(false, ''), 1800);
+    } else {
+      const successCount = files.length - failedFiles.length;
+      setLoading(
+        false,
+        `Uploaded ${successCount} of ${files.length} photos. Retry failed files: ${failedFiles.join(', ')}`
+      );
+      console.error('Some uploads failed', { failedFiles, results });
+    }
   } catch (error) {
     console.error(error);
     setLoading(false, 'Upload failed. Please try again.');
